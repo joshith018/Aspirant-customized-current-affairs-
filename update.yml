@@ -1,0 +1,27 @@
+name: Update current affairs
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: update-affairs
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python scripts/update.py
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      - name: Commit changes
+        run: |
+          git config user.name "affairs-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add data/affairs.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Update current affairs $(date -u +%F\ %H:%M)"
+            git pull --rebase -q && git push
+          fi
